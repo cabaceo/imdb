@@ -1,0 +1,330 @@
+---
+title: "IMDB films data visualization"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows          
+    social: menu
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(ezplot)
+library(plotly)
+library(flexdashboard)
+
+# load data
+load("data/sysdata.rda")
+```
+
+About
+=======================================================================
+[IMDB](http://imdb.com/) is the biggest movie database online with data 
+publicly available for [downloand](http://www.imdb.com/interfaces/). 
+We downloaded data from 1913 to 2014 using some modified ruby scripts based off 
+[Hadley's originals](https://github.com/hadley/data-movies), and parsed them 
+into format suitable for analysis. The output is a tidy dataset with 5944 films 
+and the following fields:
+
+* title.  Title of the movie.
+* year.  Year of release.
+* budget.  Total budget in US dollars.
+* length.  Length in minutes.
+* rating.  Average rating from IMDB users. The raw ratings are on a scale of 1 (worst) to 10 (best).
+* votes.  Number of IMDB users who rated this movie.
+* r1-10.  Distribution of votes for each rating, to mid point of nearest decile: 0 = no votes, 4.5 = 1-9 votes, 14.5 = 11-19 of votes, etc. Due to rounding errors these may not sum to 100.
+* mpaa.  MPAA rating (ex: R, PG-13).
+* boxoffice.  Total ticket sales in US dollars.
+* actor, actress, director, and writer.  String variables giving these people's names.
+* action, animation, comedy, drama, documentary, romance, short.  Binary variables representing if movie was classified as belonging to that genre.
+
+We analyzed this dataset. This dashboard presents some of the charts we made 
+using the [ezplot](http://leanpub.com/ezplot) R package.
+
+
+Made by [Cabaceo LLC](https://cabaceo.com).
+
+Films & Votes
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Number of films over the years
+
+```{r}
+plt = mk_lineplot(films_n_votes_by_year)
+p = plt("year", "films", font_size = 13)
+add_labs(p, ylab = "Count", xlab = NULL, subtitle = NULL,
+         title = "Number of films (1913 - 2014)")
+```
+
+### Number of votes over the years
+
+```{r}
+p = plt("year", "votes", font_size = 13)
+p = add_labs(p, ylab = "Count (log10 scale)", xlab = NULL, subtitle = NULL,
+             title = "Number of votes (1913 - 2014)")
+scale_axis(p, scale = "log10")
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Average votes per film over the years
+
+```{r}
+p = plt("year", "avg_votes", font_size = 13)
+p = add_labs(p, ylab = "Votes per film (log10 scale)", 
+             xlab = NULL, subtitle = NULL,
+             title = "Average votes per film (1913 - 2014)")
+scale_axis(p, scale = "log10")
+```
+
+### Number of films over 4 periods
+
+```{r}
+plt = mk_lineplot(films_n_votes_by_yearcat)
+p = plt("year_cat", "films", font_size = 13)
+add_labs(p, ylab = "Count", xlab = NULL, subtitle = NULL,
+         title = "Number of films at each period")
+```
+
+Budget & Boxoffice
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Distributions of budget and boxoffice over 4 periods
+
+```{r}
+plt = mk_boxplot(btbo_by_yearcat)
+p = plt("year_cat", "val", "type", legend_title = NULL, font_size = 13,
+        legend_pos = "top") 
+p = add_labs(p, ylab = "US Dollars (log10 scale)",
+             title = "Distribution of budget and boxoffice at each period")
+scale_axis(p, scale = "log10")
+```
+
+### Total budget and boxoffice over the years
+
+```{r}
+plt = mk_lineplot(btbo_by_year)
+p = plt("year", "tot", "type", legend_title = NULL, legend_pos = "top",
+        add_cnt_to_legend = F, font_size = 13) 
+p = add_labs(p, ylab = "US Dollars (log10 scale)", xlab = NULL, subtitle = NULL,
+             title = "Total budget and boxoffice (1913 - 2014)")
+scale_axis(p, scale = "log10")
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Average budget and boxoffice over the years
+
+```{r}
+p = plt("year", "avg", "type", legend_title = NULL, legend_pos = "top", 
+        add_cnt_to_legend = F, font_size = 13) 
+p = add_labs(p, ylab = "USD (log10 scale)", xlab = NULL, subtitle = NULL,
+             title = "Average budget and boxoffice (1913 - 2014)")
+scale_axis(p, scale = "log10")
+```
+
+### Boxoffice/budget over the years
+
+```{r}
+plt = mk_lineplot(bo_bt_ratio_by_year)
+p = plt("year", "bo_bt_ratio", font_size = 13)
+p = p + ggplot2::geom_hline(yintercept = 10, linetype = 2) +
+        ggplot2::geom_text(x = 2005, y = 20, color = "black", label = "10x")
+add_labs(p, ylab = "Multiples", xlab = NULL, subtitle = NULL,
+         title = "Boxoffice/Budget (1913 - 2014)")
+```
+
+
+User Rating
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Distribution of votes for r1-10
+
+```{r}
+plt = mk_heatmap(votes_per_rating)
+p = plt("rating", "votes", "val", palette = "D", legend_title = "Percent",
+        font_size = 13)
+add_labs(p, title = "Distribution of votes for r1-10 (1913-2014)")
+```
+
+### Distribution of users' average ratings
+
+```{r}
+plt = mk_densityplot(films)
+p = plt("rating", cut_tail = 0, font_size = 13)
+add_labs(p, xlab = "Average of the users' ratings",
+         title = "Distribution of average ratings (1913-2014)")
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Median of the average ratings over the years
+
+```{r}
+plt = mk_lineplot(rating_stats_by_year)
+p = plt("year", "med_rating")
+add_labs(p, ylab = "Median", xlab = NULL, subtitle = NULL,
+         title = "Median of the average ratings (1913-2014)")
+```
+
+### Standard deviation of the average ratings over the years
+```{r}
+p = plt("year", "sd_rating")
+add_labs(p, ylab = "SD", xlab = NULL, subtitle = NULL,
+         title = "SD of the average ratings (1913-2014)")
+```
+
+
+MPAA, Length and Genre
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Distribution of MPAA film ratings 
+```{r}        
+plt = mk_barplot_freq(films)
+p = plt("mpaa", show_pct = T, font_size = 13)
+add_labs(p, title = "Distribution of MPAA film ratings")
+```
+
+### Distribution of film lengths
+```{r}
+plt = mk_histogram(films)
+p = plt("length", legend_pos = "top", font_size = 13)
+add_labs(p, xlab = "Minutes", title = "Distribution of film lengths")
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Distribution of film genres
+```{r}        
+plt = mk_barploth_resp(films_by_genre)
+p = plt("pct", "genre", label_size = 0, show_pct = T, font_size = 13)
+add_labs(p, title = "Distribution of film genres", xlab = NULL)
+```
+
+### Top 5 genres for each period
+```{r}        
+plt = mk_heatmap(top5genres_by_yearcat)
+p = plt("year_cat", "genre", fillby = "pct", legend_title = "Percent",
+        font_size = 13)
+p = add_labs(p, title = "Top 5 genres for each period")
+rotate_axis_text(p, 90, vjust_x = 0.5)
+```
+
+Boxoffice vs. Other Vars
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Boxoffice vs. budget
+```{r}        
+plt = mk_scatterplot(films)
+p = plt("budget", "boxoffice", alpha = 0.2, font_size = 13)
+p = add_labs(p, xlab = "Budget (USD, log10 scale)", 
+             ylab = "Boxoffice (USD, log10 scale)",
+             title = "Bigger budget, bigger boxoffice (1913-2014)")
+p = scale_axis(p, scale = "log10")
+p = scale_axis(p, "x", scale="log10")
+add_lm_line(p)
+```
+
+### Votes vs. boxoffice
+```{r}        
+p = plt("boxoffice", "votes", alpha = 0.2, font_size = 13)
+p = add_labs(p, ylab = "Number of votes (log10 scale)", 
+             xlab = "Boxoffice (USD, log10 scale)",
+             title = "Bigger boxoffice, more votes (1913-2014)")
+p = scale_axis(p, scale = "log10")
+p = scale_axis(p, "x", scale = "log10")
+add_lm_line(p)
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Users' average rating vs. boxoffice 
+```{r}
+p = plt("boxoffice", "rating", alpha = 0.2, font_size = 13)
+p = add_labs(p, xlab = "Boxoffice (USD, log10 scale)", ylab = "Rating scale",
+             title = "Bigger boxoffice, higher user rating (1913-2014)")
+p = scale_axis(p, "x", scale = "log10")
+add_lm_line(p)
+```
+
+### Boxoffice vs. MPAA films rating
+```{r}
+plt = mk_boxplot(films)
+p = plt("mpaa", "boxoffice", font_size = 13)
+p = add_labs(p, ylab = "Boxoffice (USD, log10 scale)",
+             title = "Boxoffice vs. MPAA rating (1913-2014)")
+p = scale_axis(p, scale="log10")
+add_lm_line(p)
+```        
+        
+Boxoffice/Budget vs. Other Vars
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Boxoffice/budget over the years
+```{r}
+plt = mk_scatterplot(films)
+p = plt("year", "bo_bt_ratio", fillby = "made_money", alpha = 0.2,
+        legend_title = "Is profitable?", legend_pos = "top", font_size = 13)
+p = add_labs(p, ylab = "Multiple (log10 scale)", xlab = NULL,
+             title = "Boxoffice/Budget (1913-2014)")
+p = scale_axis(p, scale = "log10")
+add_lm_line(p, pval_xpos = "left")
+```
+
+### Users' average rating vs. boxoffice/budget
+```{r}        
+p = plt("bo_bt_ratio", "rating", fillby = "made_money", alpha = 0.2,
+        legend_title = "Is profitable?", legend_pos = "top", font_size = 13)
+p = add_labs(p, xlab = "Multiple (log10 scale)", ylab = "Rating Scale",
+             title = "Average rating vs. Boxoffice/Budget (1913-2014)")
+p = scale_axis(p, "x", scale = "log10")
+add_lm_line(p, pval_xpos = "left")        
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Votes vs. boxoffice/budget
+```{r}
+p = plt("bo_bt_ratio", "votes", fillby = "made_money", alpha = 0.2,
+        legend_title = "Is profitable?", legend_pos = "top", font_size = 13)
+p = add_labs(p, xlab = "Multiple (log10 scale)", 
+             ylab = "Number of votes (log10 scale)",
+             title = "Votes vs. Boxoffice/Budget (1913-2014)")
+p = scale_axis(p, scale = "log10")
+p = scale_axis(p, "x", scale="log10")
+add_lm_line(p, pval_xpos = "left")
+```
+
+### Boxoffice/budget vs. MPAA films rating
+```{r}
+plt = mk_boxplot(films)
+p = plt("mpaa", "bo_bt_ratio", font_size = 13)
+p = add_labs(p, ylab = "Multiple (log10 scale)",
+             title = "Boxoffice/Budget vs. MPAA rating (1913-2014)")
+scale_axis(p, scale = "log10")
+```
