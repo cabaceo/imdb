@@ -14,7 +14,7 @@ library(plotly)
 library(flexdashboard)
 
 # load data
-load("data/sysdata.rda")
+load("sysdata.rda")
 ```
 
 About
